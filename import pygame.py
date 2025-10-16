@@ -30,6 +30,9 @@ ARROW = (0, 0, 0)             # 起点黑色箭头
 # 加载终点红旗图片
 FLAG_IMAGE = pygame.image.load("F:/code/little_game/red flag.png")
 FLAG_IMAGE = pygame.transform.scale(FLAG_IMAGE, (CELL_SIZE * 2, CELL_SIZE * 2))  # 调整红旗大小
+# 加载玩家图片
+PLAYER_IMAGE = pygame.image.load("F:/code/little_game/022-snails.png")
+PLAYER_IMAGE = pygame.transform.scale(PLAYER_IMAGE, (CELL_SIZE, CELL_SIZE))  # 调整玩家图片大小
 
 # 创建屏幕
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -100,15 +103,18 @@ def draw_maze(maze, start, end):
     
     # 绘制起点的圆形和文字“START”
     sx, sy = start
-    pygame.draw.circle(screen, (0, 0, 0), (sx * CELL_SIZE + CELL_SIZE // 2, sy * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 3 * 2)  # 黑色圆形，直径增大两倍
-    font = pygame.font.SysFont(None, 24)  # 使用默认字体，字号为24
+    pygame.draw.circle(screen, (0, 0, 0), (sx * CELL_SIZE + CELL_SIZE // 2, sy * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 3 * 2)  # 黑色圆形
+    font = pygame.font.SysFont(None, 18)  # 使用默认字体，字号为18，确保文字不超过圆的直径
     text_surface = font.render("START", True, (255, 255, 255))  # 白色文字
     text_rect = text_surface.get_rect(center=(sx * CELL_SIZE + CELL_SIZE // 2, sy * CELL_SIZE + CELL_SIZE // 2))
     screen.blit(text_surface, text_rect)
     
-    # 绘制终点（红旗图片）
+    # 绘制终点的红色圆形和文字“END”
     ex, ey = end
-    screen.blit(FLAG_IMAGE, (ex * CELL_SIZE - CELL_SIZE // 2, ey * CELL_SIZE - CELL_SIZE // 2))
+    pygame.draw.circle(screen, (255, 0, 0), (ex * CELL_SIZE + CELL_SIZE // 2, ey * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 3 * 2)  # 红色圆形
+    end_text_surface = font.render("END", True, (255, 255, 255))  # 白色文字
+    end_text_rect = end_text_surface.get_rect(center=(ex * CELL_SIZE + CELL_SIZE // 2, ey * CELL_SIZE + CELL_SIZE // 2))
+    screen.blit(end_text_surface, end_text_rect)
     
     pygame.display.flip()
 
@@ -141,6 +147,9 @@ def main():
     # 生成迷宫
     maze, start, end = generate_maze(MAZE_WIDTH, MAZE_HEIGHT)
     
+    # 玩家初始位置
+    player_x, player_y = start
+
     running = True
     while running:
         for event in pygame.event.get():
@@ -150,12 +159,27 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     maze, start, end = generate_maze(MAZE_WIDTH, MAZE_HEIGHT)
-        
+                    player_x, player_y = start
+
+        # 获取按键状态
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_w] and maze[player_y - 1][player_x] == 0:  # 向上移动
+            player_y -= 1
+        if keys[pygame.K_s] and maze[player_y + 1][player_x] == 0:  # 向下移动
+            player_y += 1
+        if keys[pygame.K_a] and maze[player_y][player_x - 1] == 0:  # 向左移动
+            player_x -= 1
+        if keys[pygame.K_d] and maze[player_y][player_x + 1] == 0:  # 向右移动
+            player_x += 1
+
         draw_static_pixel_background(screen, static_background)  # 使用静态像素块背景
         pygame.draw.circle(screen, (255, 255, 255), (x, y), radius)  # 白色圆点
         draw_maze(maze, start, end)
+        # 绘制玩家
+        screen.blit(PLAYER_IMAGE, (player_x * CELL_SIZE, player_y * CELL_SIZE))
+        pygame.display.flip()
         clock.tick(30)
-    
+
     pygame.quit()
     sys.exit()
 
