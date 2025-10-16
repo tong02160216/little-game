@@ -172,6 +172,20 @@ def main():
         if keys[pygame.K_d] and maze[player_y][player_x + 1] == 0:  # 向右移动
             player_x += 1
 
+        # 定义白色圆点的初始位置和半径
+        if 'x' not in locals():
+            x, y = SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2  # 圆点初始位置为屏幕中心
+            radius = 10  # 圆点半径
+
+        if keys[pygame.K_w] and y - radius > 0:  # 向上移动
+            y -= 5
+        if keys[pygame.K_s] and y + radius < SCREEN_HEIGHT:  # 向下移动
+            y += 5
+        if keys[pygame.K_a] and x - radius > 0:  # 向左移动
+            x -= 5
+        if keys[pygame.K_d] and x + radius < SCREEN_WIDTH:  # 向右移动
+            x += 5
+
         draw_static_pixel_background(screen, static_background)  # 使用静态像素块背景
         pygame.draw.circle(screen, (255, 255, 255), (x, y), radius)  # 白色圆点
         draw_maze(maze, start, end)
