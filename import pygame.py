@@ -25,8 +25,11 @@ SCREEN_HEIGHT = CELL_SIZE * MAZE_HEIGHT
 # 颜色定义
 BACKGROUND = (200, 200, 200)  # 淡灰色背景
 WALL = (255, 255, 255)        # 白色墙线
-START = (0, 255, 0)           # 起点绿色
-END = (255, 0, 0)             # 终点红色
+ARROW = (0, 0, 0)             # 起点黑色箭头
+
+# 加载终点红旗图片
+FLAG_IMAGE = pygame.image.load("F:/code/little_game/red flag.png")
+FLAG_IMAGE = pygame.transform.scale(FLAG_IMAGE, (CELL_SIZE * 2, CELL_SIZE * 2))  # 调整红旗大小
 
 # 创建屏幕
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -95,25 +98,17 @@ def draw_maze(maze, start, end):
                 )
                 pygame.draw.rect(screen, WALL, rect)
     
-    # 绘制起点
+    # 绘制起点的圆形和文字“START”
     sx, sy = start
-    start_rect = pygame.Rect(
-        sx * CELL_SIZE, 
-        sy * CELL_SIZE, 
-        CELL_SIZE, 
-        CELL_SIZE
-    )
-    pygame.draw.rect(screen, START, start_rect)
+    pygame.draw.circle(screen, (0, 0, 0), (sx * CELL_SIZE + CELL_SIZE // 2, sy * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 3 * 2)  # 黑色圆形，直径增大两倍
+    font = pygame.font.SysFont(None, 24)  # 使用默认字体，字号为24
+    text_surface = font.render("START", True, (255, 255, 255))  # 白色文字
+    text_rect = text_surface.get_rect(center=(sx * CELL_SIZE + CELL_SIZE // 2, sy * CELL_SIZE + CELL_SIZE // 2))
+    screen.blit(text_surface, text_rect)
     
-    # 绘制终点
+    # 绘制终点（红旗图片）
     ex, ey = end
-    end_rect = pygame.Rect(
-        ex * CELL_SIZE, 
-        ey * CELL_SIZE, 
-        CELL_SIZE, 
-        CELL_SIZE
-    )
-    pygame.draw.rect(screen, END, end_rect)
+    screen.blit(FLAG_IMAGE, (ex * CELL_SIZE - CELL_SIZE // 2, ey * CELL_SIZE - CELL_SIZE // 2))
     
     pygame.display.flip()
 
