@@ -1,12 +1,15 @@
 import pygame
 import sys
 import random
+import turtle
+import time
 
 # 初始化
 pygame.init()
 WIDTH, HEIGHT = 600, 400
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("白色小圆点移动")
+# 修改Pygame窗口标题
+pygame.display.set_caption("送蜗牛回家")
 
 # 圆点属性
 x, y = WIDTH // 2, HEIGHT // 2
@@ -142,6 +145,58 @@ def draw_static_pixel_background(surface, background):
 # 创建静态背景
 static_background = generate_static_pixel_background(WIDTH, HEIGHT, 20)
 
+# 添加蜗牛到达终点的动画函数
+def play_celebration_animation():
+    # 设置画布
+    screen = turtle.Screen()
+    screen.setup(600, 400)
+    screen.title("庆祝爱心")
+    screen.bgcolor("black")
+
+    # 创建爱心
+    heart = turtle.Turtle()
+    heart.color("red")
+    heart.shape("circle")  # 先用圆形，后续画爱心
+    heart.penup()
+    heart.speed(0)
+
+    # 爱心的绘制函数
+    def draw_heart(size):
+        heart.pendown()
+        heart.begin_fill()
+        heart.left(140)
+        heart.forward(size)
+        heart.circle(-size/2, 180)
+        heart.left(120)
+        heart.circle(-size/2, 180)
+        heart.forward(size)
+        heart.end_fill()
+        heart.penup()
+        heart.setheading(0)  # 重置方向
+
+    # 弹跳参数
+    x, y = 0, 0
+    dx, dy = 3, 4  # 速度
+    size = 30
+
+    # 动画循环
+    for _ in range(100):  # 循环100次
+        screen.clear()
+        heart.goto(x, y)
+        draw_heart(size)
+        # 更新位置（碰到边界反弹）
+        x += dx
+        y += dy
+        if x > 300 - size or x < -300 + size:
+            dx *= -1
+        if y > 200 - size or y < -200 + size:
+            dy *= -1
+        time.sleep(0.05)
+
+    turtle.write("🎉 庆祝！🎉", align="center", font=("Arial", 20, "bold"))
+    turtle.hideturtle()
+    turtle.done()
+
 def main():
     clock = pygame.time.Clock()
     # 生成迷宫
@@ -172,27 +227,16 @@ def main():
         if keys[pygame.K_d] and maze[player_y][player_x + 1] == 0:  # 向右移动
             player_x += 1
 
-        # 定义白色圆点的初始位置和半径
-        if 'x' not in locals():
-            x, y = SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2  # 圆点初始位置为屏幕中心
-            radius = 10  # 圆点半径
-
-        if keys[pygame.K_w] and y - radius > 0:  # 向上移动
-            y -= 5
-        if keys[pygame.K_s] and y + radius < SCREEN_HEIGHT:  # 向下移动
-            y += 5
-        if keys[pygame.K_a] and x - radius > 0:  # 向左移动
-            x -= 5
-        if keys[pygame.K_d] and x + radius < SCREEN_WIDTH:  # 向右移动
-            x += 5
-
-        draw_static_pixel_background(screen, static_background)  # 使用静态像素块背景
-        pygame.draw.circle(screen, (255, 255, 255), (x, y), radius)  # 白色圆点
         draw_maze(maze, start, end)
         # 绘制玩家
         screen.blit(PLAYER_IMAGE, (player_x * CELL_SIZE, player_y * CELL_SIZE))
         pygame.display.flip()
         clock.tick(30)
+
+        # 检测蜗牛是否到达终点
+        if (player_x, player_y) == end:
+            play_celebration_animation()
+            running = False
 
     pygame.quit()
     sys.exit()
