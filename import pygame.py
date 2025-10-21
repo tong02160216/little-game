@@ -109,10 +109,13 @@ def draw_maze(maze, start):
     """绘制迷宫"""
     screen.fill(BACKGROUND)
     
+    # 使用固定的随机种子来确保每次绘制相同的灌木丛位置
+    random.seed(42)
+    
     for y in range(MAZE_HEIGHT):
         for x in range(MAZE_WIDTH):
             if maze[y][x] == 1:
-                # 绘制墙
+                # 绘制墙（白色背景）
                 rect = pygame.Rect(
                     x * CELL_SIZE, 
                     y * CELL_SIZE, 
@@ -120,16 +123,61 @@ def draw_maze(maze, start):
                     CELL_SIZE
                 )
                 pygame.draw.rect(screen, WALL, rect)
+                
+                # 决定是否在这个墙格子上生成灌木丛（50%概率，增加密度）
+                if random.random() < 0.5:
+                    # 随机选择灌木丛大小（2x2、3x3 或 4x4 像素块，增加大尺寸）
+                    bush_size = random.choice([2, 3, 3, 4])  # 3出现两次增加概率
+                    pixel_size = CELL_SIZE // 4
+                    
+                    # 随机选择灌木丛位置（确保不会超出格子边界）
+                    max_offset = 4 - bush_size
+                    start_px = random.randint(0, max_offset) if max_offset > 0 else 0
+                    start_py = random.randint(0, max_offset) if max_offset > 0 else 0
+                    
+                    # 选择这一丛灌木的基础绿色
+                    green_shades = [
+                        (34, 139, 34),   # 森林绿
+                        (0, 128, 0),     # 纯绿
+                        (50, 205, 50),   # 亮绿
+                        (0, 100, 0),     # 深绿
+                        (46, 139, 87)    # 海洋绿
+                    ]
+                    base_color = random.choice(green_shades)
+                    
+                    # 绘制一丛灌木
+                    for py in range(bush_size):
+                        for px in range(bush_size):
+                            # 提高显示概率到90%，让灌木更密集
+                            if random.random() < 0.9:
+                                # 在基础颜色上添加一些随机变化（减少变化范围，让颜色更统一）
+                                r = max(0, min(255, base_color[0] + random.randint(-15, 15)))
+                                g = max(0, min(255, base_color[1] + random.randint(-15, 15)))
+                                b = max(0, min(255, base_color[2] + random.randint(-8, 8)))
+                                color = (r, g, b)
+                                
+                                actual_x = start_px + px
+                                actual_y = start_py + py
+                                # 确保不超出格子边界
+                                if actual_x < 4 and actual_y < 4:
+                                    pixel_rect = pygame.Rect(
+                                        x * CELL_SIZE + actual_x * pixel_size,
+                                        y * CELL_SIZE + actual_y * pixel_size,
+                                        pixel_size,
+                                        pixel_size
+                                    )
+                                    pygame.draw.rect(screen, color, pixel_rect)
     
-    # 绘制起点的灰色圆形和文字“START”
+    # 恢复随机数生成器
+    random.seed()
+    
+    # 绘制起点的灰色圆形和文字"START"
     sx, sy = start
     pygame.draw.circle(screen, (128, 128, 128), (sx * CELL_SIZE + CELL_SIZE // 2, sy * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 3 * 2)  # 灰色圆形
     font = pygame.font.SysFont(None, 18)  # 使用默认字体，字号为18，确保文字不超过圆的直径
     text_surface = font.render("START", True, (255, 255, 255))  # 白色文字
     text_rect = text_surface.get_rect(center=(sx * CELL_SIZE + CELL_SIZE // 2, sy * CELL_SIZE + CELL_SIZE // 2))
     screen.blit(text_surface, text_rect)
-    
-    pygame.display.flip()
 
 # 生成静态像素块背景
 def generate_static_pixel_background(width, height, block_size):
@@ -259,8 +307,10 @@ def main():
 
     # 确保房子图片为全局变量
     global HOUSE_IMAGE
-    HOUSE_IMAGE = pygame.image.load("F:/code/little_game/房子2.png")
+    HOUSE_IMAGE = pygame.image.load("F:/code/little_game/房子3.png")
     HOUSE_IMAGE = pygame.transform.scale(HOUSE_IMAGE, (CELL_SIZE * 2, CELL_SIZE * 2))  # 调整房子大小
+    HOUSE_IMAGE = pygame.transform.scale(HOUSE_IMAGE, (CELL_SIZE // 2, CELL_SIZE // 2))  # 缩小
+    HOUSE_IMAGE = pygame.transform.scale(HOUSE_IMAGE, (CELL_SIZE * 2, CELL_SIZE * 2))  # 放大回原尺寸
 
     # 生成迷宫
     maze, start, end = generate_maze(MAZE_WIDTH, MAZE_HEIGHT)  # 获取终点位置
@@ -303,7 +353,7 @@ def main():
         # 检查蜗牛是否到达房子
         if player_x == end_x and player_y == end_y:
             font = pygame.font.Font(None, 74)
-            text = font.render("Congratulations!!", True, (0, 255, 0))
+            text = font.render("Congratulations!!", True, (255, 0, 0))
             text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
             screen.blit(text, text_rect)
 
