@@ -3,6 +3,7 @@ import sys
 import random
 import turtle
 import time
+import math
 
 # 初始化
 pygame.init()
@@ -150,7 +151,7 @@ def play_celebration_animation():
     # 设置画布
     screen = turtle.Screen()
     screen.setup(600, 400)
-    screen.title("庆祝爱心")
+    screen.title("庆祝")
     screen.bgcolor("black")
 
     # 创建爱心
@@ -197,20 +198,178 @@ def play_celebration_animation():
     turtle.hideturtle()
     turtle.done()
 
+# 添加结算画面的函数，使用气球图像
+def show_congratulations_screen():
+    # 加载背景图像作为气球背景
+    background_image = pygame.image.load("F:/code/little_game/生成气球图片.png")
+
+    # 加载背景气球图像
+    background_balloon_image = pygame.image.load("F:/code/little_game/生成气球图片.png")
+
+    # 初始化背景气球参数
+    background_balloons = []
+    for _ in range(20):  # 创建20个背景气球
+        x = random.randint(0, SCREEN_WIDTH)
+        y = random.randint(SCREEN_HEIGHT, SCREEN_HEIGHT + 300)
+        dy = random.uniform(-3, -1)  # 较慢的上升速度
+        scale = random.uniform(0.5, 1.5)  # 大小范围
+        background_balloons.append({'x': x, 'y': y, 'dy': dy, 'scale': scale})
+
+    # 在结算画面中绘制背景气球动画
+    while True:  # 无限循环，保持画面
+        screen.fill((255, 255, 255))  # 白色背景
+
+        # 绘制背景气球
+        for balloon in background_balloons:
+            scaled_balloon = pygame.transform.scale(background_balloon_image, (
+                int(background_balloon_image.get_width() * balloon['scale']),
+                int(background_balloon_image.get_height() * balloon['scale'])
+            ))
+            screen.blit(scaled_balloon, (balloon['x'], balloon['y']))
+            balloon['y'] += balloon['dy']
+            if balloon['y'] + scaled_balloon.get_height() < 0:
+                balloon['y'] = SCREEN_HEIGHT + random.randint(0, 200)
+                balloon['x'] = random.randint(0, SCREEN_WIDTH)
+                balloon['scale'] = random.uniform(0.5, 1.5)
+
+        # 绘制文字
+        font = pygame.font.Font(None, 74)
+        text = font.render("Congratulations!!", True, (0, 0, 0))
+        text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        screen.blit(text, text_rect)
+
+        pygame.display.flip()
+        clock.tick(30)
+
+        # 检测退出事件
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+# 定义气球类
+class Balloon:
+    def __init__(self):
+        # 随机大小（控制远近，小的看起来远）
+        self.size = random.randint(15, 40)
+        # 随机位置（从底部开始）
+        self.x = random.randint(self.size, SCREEN_WIDTH - self.size)
+        self.y = SCREEN_HEIGHT + self.size
+
+        # 随机颜色
+        self.color = (
+            random.randint(50, 255),
+            random.randint(50, 255),
+            random.randint(50, 255)
+        )
+
+        # 速度设置（小气球速度慢，模拟远处效果）
+        self.speed = (self.size / 40) * 2 + random.uniform(0.5, 1.5)
+
+        # 左右摇摆幅度和速度
+        self.swing_amplitude = random.uniform(0.5, 2.0)
+        self.swing_speed = random.uniform(0.02, 0.05)
+        self.swing_offset = random.uniform(0, math.pi * 2)
+
+        # 绳子长度
+        self.string_length = self.size * 1.2
+
+    def update(self):
+        # 向上移动
+        self.y -= self.speed
+
+        # 左右摇摆（使用正弦函数实现平滑摇摆）
+        self.x += math.sin(pygame.time.get_ticks() * 0.001 * self.swing_speed + self.swing_offset) * self.swing_amplitude
+
+        # 当气球飞出屏幕顶部时重置位置
+        if self.y < -self.size * 2:
+            self.reset()
+
+    def reset(self):
+        # 重置气球到屏幕底部
+        self.x = random.randint(self.size, SCREEN_WIDTH - self.size)
+        self.y = SCREEN_HEIGHT + self.size
+        self.color = (
+            random.randint(50, 255),
+            random.randint(50, 255),
+            random.randint(50, 255)
+        )
+
+    def draw(self, surface):
+        # 绘制气球主体
+        pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.size)
+
+        # 绘制气球高光（增加立体感）
+        highlight_color = (
+            min(255, self.color[0] + 50),
+            min(255, self.color[1] + 50),
+            min(255, self.color[2] + 50)
+        )
+        pygame.draw.circle(
+            surface, 
+            highlight_color, 
+            (int(self.x - self.size/3), int(self.y - self.size/3)), 
+            self.size // 5
+        )
+
+        # 绘制气球底部
+        pygame.draw.polygon(
+            surface, 
+            self.color, 
+            [
+                (self.x - self.size//5, self.y + self.size//5),
+                (self.x, self.y + self.size//2),
+                (self.x + self.size//5, self.y + self.size//5)
+            ]
+        )
+
+        # 绘制绳子
+        pygame.draw.line(
+            surface, 
+            (50, 50, 50), 
+            (self.x, self.y + self.size//2),
+            (self.x, self.y + self.size//2 + self.string_length),
+            1 if self.size < 25 else 2  # 小气球绳子细一些
+        )
+
+# 创建气球列表
+balloons = [Balloon() for _ in range(40)]  # 40个气球
+
+# 确保字体初始化在主循环之前完成
+pygame.font.init()
+font = pygame.font.SysFont(["SimHei", "WenQuanYi Micro Hei", "Heiti TC"], 30)
+
+# 定义 main 函数
+
 def main():
+    # 初始化 Pygame
+    pygame.init()
+
+    # 设置屏幕大小
+    global SCREEN_WIDTH, SCREEN_HEIGHT, screen, clock
+    SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
+
+    # 设置迷宫参数
+    global MAZE_WIDTH, MAZE_HEIGHT, CELL_SIZE, PLAYER_IMAGE
+    MAZE_WIDTH, MAZE_HEIGHT = 20, 15
+    CELL_SIZE = SCREEN_WIDTH // MAZE_WIDTH
+
+    # 加载玩家图像
+    PLAYER_IMAGE = pygame.image.load("F:/code/little_game/022-snails.png")
+    PLAYER_IMAGE = pygame.transform.scale(PLAYER_IMAGE, (CELL_SIZE, CELL_SIZE))
+
     # 生成迷宫
     maze, start, end = generate_maze(MAZE_WIDTH, MAZE_HEIGHT)
-    
-    # 玩家初始位置
     player_x, player_y = start
 
+    # 主循环
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            # 按空格键重新生成迷宫
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     maze, start, end = generate_maze(MAZE_WIDTH, MAZE_HEIGHT)
@@ -218,24 +377,22 @@ def main():
 
         # 获取按键状态
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_w] and maze[player_y - 1][player_x] == 0:  # 向上移动
+        if keys[pygame.K_w] and maze[player_y - 1][player_x] == 0:
             player_y -= 1
-        if keys[pygame.K_s] and maze[player_y + 1][player_x] == 0:  # 向下移动
+        if keys[pygame.K_s] and maze[player_y + 1][player_x] == 0:
             player_y += 1
-        if keys[pygame.K_a] and maze[player_y][player_x - 1] == 0:  # 向左移动
+        if keys[pygame.K_a] and maze[player_y][player_x - 1] == 0:
             player_x -= 1
-        if keys[pygame.K_d] and maze[player_y][player_x + 1] == 0:  # 向右移动
+        if keys[pygame.K_d] and maze[player_y][player_x + 1] == 0:
             player_x += 1
 
         draw_maze(maze, start, end)
-        # 绘制玩家
         screen.blit(PLAYER_IMAGE, (player_x * CELL_SIZE, player_y * CELL_SIZE))
         pygame.display.flip()
         clock.tick(30)
 
-        # 检测蜗牛是否到达终点
         if (player_x, player_y) == end:
-            play_celebration_animation()
+            show_congratulations_screen()
             running = False
 
     pygame.quit()
@@ -243,3 +400,29 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # 修改主循环，添加气球动画
+    while running:
+        # 处理事件
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+
+        # 清屏（白色背景）
+        screen.fill((255, 255, 255))
+
+        # 更新并绘制所有气球
+        for balloon in balloons:
+            balloon.update()
+            balloon.draw(screen)
+
+        # 显示提示文字
+        text = font.render("按ESC退出", True, (100, 100, 100))
+        screen.blit(text, (10, 10))
+
+        # 刷新屏幕
+        pygame.display.flip()
+        clock.tick(60)
