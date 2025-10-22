@@ -25,7 +25,7 @@ SCREEN_WIDTH = CELL_SIZE * MAZE_WIDTH
 SCREEN_HEIGHT = CELL_SIZE * MAZE_HEIGHT
 
 # 颜色定义
-BACKGROUND = (200, 200, 200)  # 淡灰色背景
+BACKGROUND = (255, 255, 255)  # 白色背景（路径）
 WALL = (255, 255, 255)        # 白色墙线
 ARROW = (0, 0, 0)             # 起点黑色箭头
 
@@ -105,8 +105,9 @@ def generate_maze(width, height):
 
     return maze, (start_x, start_y), (end_x, end_y)
 
-def draw_maze(maze, start):
+def draw_maze(maze, start, background_img=None):
     """绘制迷宫"""
+    # 先用灰色填充整个背景（路径颜色）
     screen.fill(BACKGROUND)
     
     # 使用固定的随机种子来确保每次绘制相同的灌木丛位置
@@ -115,14 +116,20 @@ def draw_maze(maze, start):
     for y in range(MAZE_HEIGHT):
         for x in range(MAZE_WIDTH):
             if maze[y][x] == 1:
-                # 绘制墙（白色背景）
-                rect = pygame.Rect(
-                    x * CELL_SIZE, 
-                    y * CELL_SIZE, 
-                    CELL_SIZE, 
-                    CELL_SIZE
-                )
-                pygame.draw.rect(screen, WALL, rect)
+                # 如果有背景图，先绘制对应位置的背景图部分
+                if background_img is not None:
+                    # 从背景图裁剪出对应墙壁位置的部分
+                    source_rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                    screen.blit(background_img, (x * CELL_SIZE, y * CELL_SIZE), source_rect)
+                else:
+                    # 没有背景图时，绘制白色墙壁
+                    rect = pygame.Rect(
+                        x * CELL_SIZE, 
+                        y * CELL_SIZE, 
+                        CELL_SIZE, 
+                        CELL_SIZE
+                    )
+                    pygame.draw.rect(screen, WALL, rect)
                 
                 # 决定是否在这个墙格子上生成灌木丛（50%概率，增加密度）
                 if random.random() < 0.5:
@@ -283,6 +290,7 @@ font = pygame.font.SysFont(["SimHei", "WenQuanYi Micro Hei", "Heiti TC"], 30)
 def main():
     # 初始化 Pygame
     pygame.init()
+    pygame.mixer.init()  # 初始化音频系统
 
     # 设置屏幕大小
     global SCREEN_WIDTH, SCREEN_HEIGHT, screen, clock
@@ -312,10 +320,58 @@ def main():
     HOUSE_IMAGE = pygame.transform.scale(HOUSE_IMAGE, (CELL_SIZE // 2, CELL_SIZE // 2))  # 缩小
     HOUSE_IMAGE = pygame.transform.scale(HOUSE_IMAGE, (CELL_SIZE * 2, CELL_SIZE * 2))  # 放大回原尺寸
 
+    # 加载背景图
+    try:
+        background_image = pygame.image.load("F:/code/little_game/生成草地背景图.png")
+        background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        print("成功加载背景图")
+    except:
+        background_image = None
+        print("背景图加载失败，将使用纯色背景")
+
     # 生成迷宫
     maze, start, end = generate_maze(MAZE_WIDTH, MAZE_HEIGHT)  # 获取终点位置
     player_x, player_y = start
     end_x, end_y = end
+
+    # 用于跟踪是否已经播放庆祝音效
+    celebration_played = False
+    applause_played = False
+    
+    # 尝试加载庆祝音效（支持 WAV 或 MP3 格式）
+    try:
+        celebration_sound = pygame.mixer.Sound("F:/code/little_game/celebration.mp3")
+        celebration_sound.set_volume(1.0)  # 设置庆祝音效音量为100%（最大）
+        sound_loaded = True
+        print("成功加载庆祝音效（MP3格式）")
+    except:
+        try:
+            celebration_sound = pygame.mixer.Sound("F:/code/little_game/celebration.wav")
+            celebration_sound.set_volume(1.0)
+            sound_loaded = True
+            print("成功加载庆祝音效（WAV格式）")
+        except:
+            print("庆祝音效文件未找到（celebration.mp3 或 celebration.wav），游戏将正常运行但没有音效")
+            sound_loaded = False
+    
+    # 尝试加载欢呼声音效
+    try:
+        applause_sound = pygame.mixer.Sound("F:/code/little_game/applause-cheer-236786.mp3")
+        applause_sound.set_volume(0.8)  # 设置欢呼声音量为80%
+        applause_loaded = True
+        print("成功加载欢呼声音效")
+    except:
+        print("欢呼声音效文件未找到，游戏将正常运行但没有欢呼声")
+        applause_loaded = False
+    
+    # 加载并播放背景音乐
+    try:
+        pygame.mixer.music.load("F:/code/little_game/10月22日.WAV")
+        pygame.mixer.music.set_volume(0.3)  # 设置背景音乐音量为30%
+        pygame.mixer.music.play(-1)  # -1 表示循环播放
+        print("成功加载并播放背景音乐")
+    except:
+        print("背景音乐文件未找到，游戏将正常运行但没有背景音乐")
 
     # 主循环
     running = True
@@ -327,6 +383,14 @@ def main():
                 if event.key == pygame.K_SPACE:
                     maze, start, end = generate_maze(MAZE_WIDTH, MAZE_HEIGHT)
                     player_x, player_y = start
+                    celebration_played = False  # 重置音效标志
+                    applause_played = False  # 重置欢呼声标志
+                    # 重新播放背景音乐
+                    try:
+                        pygame.mixer.music.stop()
+                        pygame.mixer.music.play(-1)
+                    except:
+                        pass
 
         # 获取按键状态
         keys = pygame.key.get_pressed()
@@ -339,7 +403,7 @@ def main():
         if keys[pygame.K_d] and maze[player_y][player_x + 1] == 0:
             player_x += 1
 
-        draw_maze(maze, start)
+        draw_maze(maze, start, background_image)
 
         # 调整蜗牛的位置，使其居中于迷宫单元格
         snail_offset_x = (CELL_SIZE * 3 - CELL_SIZE) // 2
@@ -352,6 +416,19 @@ def main():
 
         # 检查蜗牛是否到达房子
         if player_x == end_x and player_y == end_y:
+            # 播放庆祝音效（只播放一次）
+            if not celebration_played:
+                # 停止背景音乐
+                pygame.mixer.music.stop()
+                # 播放庆祝音效
+                if sound_loaded:
+                    celebration_sound.play()
+                # 立即播放欢呼声
+                if applause_loaded:
+                    applause_sound.play()
+                celebration_played = True
+                applause_played = True
+            
             font = pygame.font.Font(None, 74)
             text = font.render("Congratulations!!", True, (255, 0, 0))
             text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
