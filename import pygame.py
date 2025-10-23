@@ -107,10 +107,34 @@ def generate_maze(width, height):
 
 def draw_maze(maze, start, background_img=None):
     """绘制迷宫"""
-    # 先用灰色填充整个背景（路径颜色）
+    # 先用白色填充整个背景（路径颜色）
     screen.fill(BACKGROUND)
     
-    # 使用固定的随机种子来确保每次绘制相同的灌木丛位置
+    # 使用固定的随机种子来确保每次绘制相同的像素纹理
+    random.seed(42)
+    
+    # 先绘制路径的像素风格纹理
+    for y in range(MAZE_HEIGHT):
+        for x in range(MAZE_WIDTH):
+            if maze[y][x] == 0:  # 路径
+                # 在路径上添加像素风格的浅灰色点缀
+                pixel_size = CELL_SIZE // 4
+                for py in range(4):
+                    for px in range(4):
+                        # 50%概率添加浅灰色像素点（增加密度）
+                        if random.random() < 0.5:
+                            # 使用更深的灰色调
+                            gray_value = random.randint(200, 230)
+                            color = (gray_value, gray_value, gray_value)
+                            pixel_rect = pygame.Rect(
+                                x * CELL_SIZE + px * pixel_size,
+                                y * CELL_SIZE + py * pixel_size,
+                                pixel_size,
+                                pixel_size
+                            )
+                            pygame.draw.rect(screen, color, pixel_rect)
+    
+    # 重置随机种子用于灌木丛
     random.seed(42)
     
     for y in range(MAZE_HEIGHT):
@@ -177,14 +201,6 @@ def draw_maze(maze, start, background_img=None):
     
     # 恢复随机数生成器
     random.seed()
-    
-    # 绘制起点的灰色圆形和文字"START"
-    sx, sy = start
-    pygame.draw.circle(screen, (128, 128, 128), (sx * CELL_SIZE + CELL_SIZE // 2, sy * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 3 * 2)  # 灰色圆形
-    font = pygame.font.SysFont(None, 18)  # 使用默认字体，字号为18，确保文字不超过圆的直径
-    text_surface = font.render("START", True, (255, 255, 255))  # 白色文字
-    text_rect = text_surface.get_rect(center=(sx * CELL_SIZE + CELL_SIZE // 2, sy * CELL_SIZE + CELL_SIZE // 2))
-    screen.blit(text_surface, text_rect)
 
 # 生成静态像素块背景
 def generate_static_pixel_background(width, height, block_size):
@@ -329,10 +345,115 @@ def main():
         background_image = None
         print("背景图加载失败，将使用纯色背景")
 
+    # 加载白菜图片
+    try:
+        global CABBAGE_IMAGE
+        CABBAGE_IMAGE = pygame.image.load("F:/code/little_game/新鲜果蔬_新鲜蔬菜包菜.png")
+        # 先缩小再放大，创建像素风格效果
+        small_size = CELL_SIZE // 2
+        CABBAGE_IMAGE = pygame.transform.scale(CABBAGE_IMAGE, (small_size, small_size))
+        CABBAGE_IMAGE = pygame.transform.scale(CABBAGE_IMAGE, (CELL_SIZE, CELL_SIZE))
+        print("成功加载白菜图片（像素风格）")
+    except:
+        CABBAGE_IMAGE = None
+        print("白菜图片加载失败")
+
+    # 加载苹果图片
+    try:
+        global APPLE_IMAGE
+        APPLE_IMAGE = pygame.image.load("F:/code/little_game/苹果.png")
+        # 先缩小再放大，创建像素风格效果
+        small_size = CELL_SIZE // 2
+        APPLE_IMAGE = pygame.transform.scale(APPLE_IMAGE, (small_size, small_size))
+        APPLE_IMAGE = pygame.transform.scale(APPLE_IMAGE, (CELL_SIZE, CELL_SIZE))
+        print("成功加载苹果图片（像素风格）")
+    except:
+        APPLE_IMAGE = None
+        print("苹果图片加载失败")
+
+    # 加载香蕉图片
+    try:
+        global BANANA_IMAGE
+        BANANA_IMAGE = pygame.image.load("F:/code/little_game/香蕉.png")
+        # 先缩小再放大，创建像素风格效果
+        small_size = CELL_SIZE // 2
+        BANANA_IMAGE = pygame.transform.scale(BANANA_IMAGE, (small_size, small_size))
+        BANANA_IMAGE = pygame.transform.scale(BANANA_IMAGE, (CELL_SIZE, CELL_SIZE))
+        print("成功加载香蕉图片（像素风格）")
+    except:
+        BANANA_IMAGE = None
+        print("香蕉图片加载失败")
+
     # 生成迷宫
     maze, start, end = generate_maze(MAZE_WIDTH, MAZE_HEIGHT)  # 获取终点位置
     player_x, player_y = start
     end_x, end_y = end
+
+    # 定义生成食物的函数
+    def generate_food_items():
+        """随机生成白菜、苹果和香蕉的位置，尽量分散在地图各处"""
+        new_cabbages = []
+        new_apples = []
+        new_bananas = []
+        
+        # 获取所有可用路径位置
+        path_cells = []
+        for y in range(MAZE_HEIGHT):
+            for x in range(MAZE_WIDTH):
+                if maze[y][x] == 0 and (x, y) != start and (x, y) != end:
+                    path_cells.append((x, y))
+        
+        if len(path_cells) >= 6:
+            # 将地图分成四个区域，让食物分散分布
+            # 左上、右上、左下、右下四个区域
+            mid_x = MAZE_WIDTH // 2
+            mid_y = MAZE_HEIGHT // 2
+            
+            # 分别获取四个区域的路径点
+            top_left = [(x, y) for x, y in path_cells if x < mid_x and y < mid_y]
+            top_right = [(x, y) for x, y in path_cells if x >= mid_x and y < mid_y]
+            bottom_left = [(x, y) for x, y in path_cells if x < mid_x and y >= mid_y]
+            bottom_right = [(x, y) for x, y in path_cells if x >= mid_x and y >= mid_y]
+            
+            selected_positions = []
+            regions = [top_left, top_right, bottom_left, bottom_right]
+            
+            # 从每个区域尝试随机选择食物位置
+            for region in regions:
+                if region:
+                    # 从该区域随机选择1-2个位置
+                    num_items = min(2, len(region))
+                    selected_positions.extend(random.sample(region, num_items))
+            
+            # 如果选中的位置不够6个，从所有路径中补充
+            if len(selected_positions) < 6:
+                remaining = [pos for pos in path_cells if pos not in selected_positions]
+                needed = 6 - len(selected_positions)
+                if len(remaining) >= needed:
+                    selected_positions.extend(random.sample(remaining, needed))
+            
+            # 随机打乱顺序
+            random.shuffle(selected_positions)
+            
+            # 分配给不同类型的食物
+            if len(selected_positions) >= 6:
+                if CABBAGE_IMAGE is not None:
+                    new_cabbages = selected_positions[:2]  # 前两个给白菜
+                    print(f"白菜位置: {new_cabbages}")
+                if APPLE_IMAGE is not None:
+                    new_apples = selected_positions[2:4]  # 中间两个给苹果
+                    print(f"苹果位置: {new_apples}")
+                if BANANA_IMAGE is not None:
+                    new_bananas = selected_positions[4:6]  # 后两个给香蕉
+                    print(f"香蕉位置: {new_bananas}")
+        
+        return new_cabbages, new_apples, new_bananas
+
+    # 初始生成食物
+    cabbages, apples, bananas = generate_food_items()
+
+    # 初始化分数
+    score = 0
 
     # 用于跟踪是否已经播放庆祝音效
     celebration_played = False
@@ -364,6 +485,21 @@ def main():
         print("欢呼声音效文件未找到，游戏将正常运行但没有欢呼声")
         applause_loaded = False
     
+    # 尝试加载吃白菜音效
+    try:
+        cabbage_sound = pygame.mixer.Sound("F:/code/little_game/shine-11-268907.mp3")
+        cabbage_sound.set_volume(0.6)  # 设置吃白菜音效音量为60%
+        cabbage_sound_loaded = True
+        print("成功加载吃白菜音效")
+    except:
+        print("吃白菜音效文件未找到，游戏将正常运行但没有吃白菜音效")
+        cabbage_sound_loaded = False
+    
+    # 吃苹果使用同样的音效
+    apple_sound_loaded = cabbage_sound_loaded
+    if apple_sound_loaded:
+        apple_sound = cabbage_sound  # 使用相同的音效
+    
     # 加载并播放背景音乐
     try:
         pygame.mixer.music.load("F:/code/little_game/10月22日.WAV")
@@ -383,8 +519,13 @@ def main():
                 if event.key == pygame.K_SPACE:
                     maze, start, end = generate_maze(MAZE_WIDTH, MAZE_HEIGHT)
                     player_x, player_y = start
+                    end_x, end_y = end
                     celebration_played = False  # 重置音效标志
                     applause_played = False  # 重置欢呼声标志
+                    # 重新生成食物
+                    cabbages, apples, bananas = generate_food_items()
+                    # 重置分数
+                    score = 0
                     # 重新播放背景音乐
                     try:
                         pygame.mixer.music.stop()
@@ -403,7 +544,64 @@ def main():
         if keys[pygame.K_d] and maze[player_y][player_x + 1] == 0:
             player_x += 1
 
+        # 检查蜗牛是否碰到白菜（遍历所有白菜）
+        for cabbage in cabbages[:]:  # 使用切片创建副本以便在循环中修改列表
+            cabbage_x, cabbage_y = cabbage
+            if player_x == cabbage_x and player_y == cabbage_y:
+                # 白菜被吃掉，从列表中移除
+                cabbages.remove(cabbage)
+                # 增加分数
+                score += 1
+                # 播放吃白菜音效
+                if cabbage_sound_loaded:
+                    cabbage_sound.play()
+                print(f"蜗牛吃掉了白菜！位置: ({cabbage_x}, {cabbage_y})，当前分数: {score}")
+
+        # 检查蜗牛是否碰到苹果（遍历所有苹果）
+        for apple in apples[:]:  # 使用切片创建副本以便在循环中修改列表
+            apple_x, apple_y = apple
+            if player_x == apple_x and player_y == apple_y:
+                # 苹果被吃掉，从列表中移除
+                apples.remove(apple)
+                # 增加分数
+                score += 1
+                # 播放吃苹果音效
+                if apple_sound_loaded:
+                    apple_sound.play()
+                print(f"蜗牛吃掉了苹果！位置: ({apple_x}, {apple_y})，当前分数: {score}")
+
+        # 检查蜗牛是否碰到香蕉（遍历所有香蕉）
+        for banana in bananas[:]:  # 使用切片创建副本以便在循环中修改列表
+            banana_x, banana_y = banana
+            if player_x == banana_x and player_y == banana_y:
+                # 香蕉被吃掉，从列表中移除
+                bananas.remove(banana)
+                # 增加分数
+                score += 1
+                # 播放吃香蕉音效（使用相同音效）
+                if apple_sound_loaded:
+                    apple_sound.play()
+                print(f"蜗牛吃掉了香蕉！位置: ({banana_x}, {banana_y})，当前分数: {score}")
+
         draw_maze(maze, start, background_image)
+
+        # 绘制所有白菜
+        if CABBAGE_IMAGE is not None:
+            for cabbage_x, cabbage_y in cabbages:
+                # 白菜居中绘制（现在是1倍CELL_SIZE，不需要偏移）
+                screen.blit(CABBAGE_IMAGE, (cabbage_x * CELL_SIZE, cabbage_y * CELL_SIZE))
+
+        # 绘制所有苹果
+        if APPLE_IMAGE is not None:
+            for apple_x, apple_y in apples:
+                # 苹果居中绘制（现在是1倍CELL_SIZE，不需要偏移）
+                screen.blit(APPLE_IMAGE, (apple_x * CELL_SIZE, apple_y * CELL_SIZE))
+
+        # 绘制所有香蕉
+        if BANANA_IMAGE is not None:
+            for banana_x, banana_y in bananas:
+                # 香蕉居中绘制（现在是1倍CELL_SIZE，不需要偏移）
+                screen.blit(BANANA_IMAGE, (banana_x * CELL_SIZE, banana_y * CELL_SIZE))
 
         # 调整蜗牛的位置，使其居中于迷宫单元格
         snail_offset_x = (CELL_SIZE * 3 - CELL_SIZE) // 2
@@ -429,10 +627,30 @@ def main():
                 celebration_played = True
                 applause_played = True
             
-            font = pygame.font.Font(None, 74)
-            text = font.render("Congratulations!!", True, (255, 0, 0))
+            # 使用可爱的字体显示祝贺信息
+            # 尝试使用系统中可爱的字体，如果没有则使用Comic Sans MS
+            cute_fonts = ["Comic Sans MS", "Arial Rounded MT Bold", "Chalkboard", "Bradley Hand", "Marker Felt"]
+            congrats_font = None
+            for font_name in cute_fonts:
+                try:
+                    congrats_font = pygame.font.SysFont(font_name, 74, bold=True)
+                    break
+                except:
+                    continue
+            
+            # 如果找不到可爱字体，使用默认字体
+            if congrats_font is None:
+                congrats_font = pygame.font.Font(None, 74)
+            
+            text = congrats_font.render("Congratulations!!", True, (255, 100, 150))  # 粉红色更可爱
             text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
             screen.blit(text, text_rect)
+
+        # 在右下角显示分数文字
+        score_font = pygame.font.Font(None, 36)
+        score_text = score_font.render(f"Score: {score}", True, (255, 255, 255))
+        score_rect = score_text.get_rect(bottomright=(SCREEN_WIDTH - 10, SCREEN_HEIGHT - 10))
+        screen.blit(score_text, score_rect)
 
         pygame.display.flip()
         clock.tick(30)
