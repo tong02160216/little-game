@@ -249,16 +249,19 @@ def show_congratulations_screen():
                 pygame.quit()
                 sys.exit()
 
-# 加载多个气球背景图像
-balloon_images = [
-    pygame.image.load("F:/code/little_game/B1.png"),
-    pygame.image.load("F:/code/little_game/B2.png"),
-    pygame.image.load("F:/code/little_game/B3.png"),
-    pygame.image.load("F:/code/little_game/B4.png"),
-    pygame.image.load("F:/code/little_game/B5.png"),
-    pygame.image.load("F:/code/little_game/B6.png"),
-    pygame.image.load("F:/code/little_game/B7.png")
+# 加载多个气球背景图像（使用convert_alpha保留透明通道）
+balloon_images = []
+balloon_files = [
+    "F:/code/little_game/B1.png",
+    "F:/code/little_game/B2.png",
+    "F:/code/little_game/B4.png",
+    "F:/code/little_game/B6.png"
 ]
+
+# 加载所有气球图片
+for file_path in balloon_files:
+    img = pygame.image.load(file_path).convert_alpha()
+    balloon_images.append(img)
 
 # 定义气球类
 class Balloon:
@@ -455,6 +458,49 @@ def main():
     # 初始化分数
     score = 0
 
+    # 定义庆祝气球类
+    class CelebrationBalloon:
+        def __init__(self, balloon_img=None):
+            # 如果指定了气球图片，使用指定的，否则随机选择
+            if balloon_img is not None:
+                self.image = balloon_img
+            else:
+                self.image = random.choice(balloon_images)
+            # 随机大小（缩小差异范围，从0.6到1.0）
+            self.scale = random.uniform(0.6, 1.0)
+            self.image = pygame.transform.scale(
+                self.image,
+                (int(self.image.get_width() * self.scale),
+                 int(self.image.get_height() * self.scale))
+            )
+            # 随机X位置
+            self.x = random.randint(0, SCREEN_WIDTH - self.image.get_width())
+            # 从屏幕下方开始
+            self.y = SCREEN_HEIGHT + random.randint(0, 200)
+            # 上升速度（随机）
+            self.speed = random.uniform(1, 3)
+            # 左右摆动
+            self.swing_offset = random.uniform(-1, 1)
+            self.swing_speed = random.uniform(0.02, 0.05)
+            self.swing_angle = random.uniform(0, 3.14 * 2)
+        
+        def update(self):
+            # 向上移动
+            self.y -= self.speed
+            # 左右摆动
+            self.swing_angle += self.swing_speed
+            # 如果飞出屏幕顶部，重置到底部
+            if self.y < -self.image.get_height():
+                self.__init__()
+        
+        def draw(self, surface):
+            # 计算摆动后的X位置
+            swing_x = self.x + math.sin(self.swing_angle) * 20 * self.scale
+            surface.blit(self.image, (swing_x, self.y))
+    
+    # 创建庆祝气球列表（初始为空，胜利时才创建）
+    celebration_balloons = []
+
     # 用于跟踪是否已经播放庆祝音效
     celebration_played = False
     applause_played = False
@@ -626,6 +672,36 @@ def main():
                     applause_sound.play()
                 celebration_played = True
                 applause_played = True
+                # 创建庆祝气球（28个，每种气球7个，平均分配）
+                celebration_balloons = []
+                balloons_per_type = 7  # 每种气球7个
+                for balloon_img in balloon_images:
+                    for _ in range(balloons_per_type):
+                        celebration_balloons.append(CelebrationBalloon(balloon_img))
+                # 打乱顺序让气球更随机
+                random.shuffle(celebration_balloons)
+            
+            # 更新并绘制庆祝气球
+            for balloon in celebration_balloons:
+                balloon.update()
+                balloon.draw(screen)
+            
+            # 绘制云朵图片（PNG格式，已有透明背景）
+            try:
+                cloud_img = pygame.image.load("F:/code/little_game/云.png").convert_alpha()
+                
+                # 调整云朵大小（增大宽度以包裹文字）
+                # "Congratulations!!" 文字大约500-550像素宽，云朵设置为800像素确保完全包裹
+                cloud_width = 800
+                cloud_height = int(cloud_img.get_height() * (cloud_width / cloud_img.get_width()))
+                cloud_img_scaled = pygame.transform.scale(cloud_img, (cloud_width, cloud_height))
+                
+                # 将云朵居中绘制在文字后面
+                cloud_x = SCREEN_WIDTH // 2 - cloud_width // 2
+                cloud_y = SCREEN_HEIGHT // 2 - cloud_height // 2
+                screen.blit(cloud_img_scaled, (cloud_x, cloud_y))
+            except Exception as e:
+                print(f"云朵图片加载失败: {e}")
             
             # 使用可爱的字体显示祝贺信息
             # 尝试使用系统中可爱的字体，如果没有则使用Comic Sans MS
