@@ -258,9 +258,16 @@ balloon_files = [
     "F:/code/little_game/B6.png"
 ]
 
-# 加载所有气球图片
+# 加载所有气球图片（添加像素效果）
 for file_path in balloon_files:
     img = pygame.image.load(file_path).convert_alpha()
+    # 先缩小到原来的1/3，再放大回原尺寸，创建像素风格效果
+    original_width = img.get_width()
+    original_height = img.get_height()
+    small_width = original_width // 3
+    small_height = original_height // 3
+    img = pygame.transform.scale(img, (small_width, small_height))
+    img = pygame.transform.scale(img, (original_width, original_height))
     balloon_images.append(img)
 
 # 定义气球类
@@ -269,12 +276,16 @@ class Balloon:
         # 随机大小（控制远近，小的看起来远）
         self.scale = random.uniform(0.5, 1.5)  # 随机缩放比例
         self.image = random.choice(balloon_images)  # 随机选择气球图像
-        self.image = pygame.transform.scale(
-            self.image, (
-                int(self.image.get_width() * self.scale),
-                int(self.image.get_height() * self.scale)
-            )
-        )
+        # 缩放时添加像素效果（先缩小再放大）
+        target_width = int(self.image.get_width() * self.scale)
+        target_height = int(self.image.get_height() * self.scale)
+        small_width = target_width // 3
+        small_height = target_height // 3
+        if small_width > 0 and small_height > 0:
+            temp_image = pygame.transform.scale(self.image, (small_width, small_height))
+            self.image = pygame.transform.scale(temp_image, (target_width, target_height))
+        else:
+            self.image = pygame.transform.scale(self.image, (target_width, target_height))
 
         # 随机位置（从四周开始）
         self.x = random.randint(-self.image.get_width(), SCREEN_WIDTH)
@@ -457,6 +468,27 @@ def main():
 
     # 初始化分数
     score = 0
+    
+    # 分数动画相关变量
+    score_scale = 1.0  # 分数文字缩放比例
+    score_animating = False  # 是否正在播放动画
+    score_animation_frame = 0  # 动画帧计数
+    
+    # 分数颜色变化
+    def get_score_color(score):
+        """根据分数返回对应的颜色，从白色逐渐变为深红色"""
+        if score == 0:
+            return (255, 255, 255)  # 白色
+        elif score == 1:
+            return (255, 200, 200)  # 浅粉色
+        elif score == 2:
+            return (255, 150, 150)  # 粉红色
+        elif score == 3:
+            return (255, 100, 100)  # 浅红色
+        elif score == 4:
+            return (255, 50, 50)    # 红色
+        else:  # score >= 5
+            return (200, 0, 0)      # 深红色
 
     # 定义庆祝气球类
     class CelebrationBalloon:
@@ -468,17 +500,22 @@ def main():
                 self.image = random.choice(balloon_images)
             # 随机大小（缩小差异范围，从0.6到1.0）
             self.scale = random.uniform(0.6, 1.0)
-            self.image = pygame.transform.scale(
-                self.image,
-                (int(self.image.get_width() * self.scale),
-                 int(self.image.get_height() * self.scale))
-            )
+            # 缩放时保持像素效果（先缩小再放大）
+            target_width = int(self.image.get_width() * self.scale)
+            target_height = int(self.image.get_height() * self.scale)
+            small_width = target_width // 3
+            small_height = target_height // 3
+            if small_width > 0 and small_height > 0:
+                temp_image = pygame.transform.scale(self.image, (small_width, small_height))
+                self.image = pygame.transform.scale(temp_image, (target_width, target_height))
+            else:
+                self.image = pygame.transform.scale(self.image, (target_width, target_height))
             # 随机X位置
             self.x = random.randint(0, SCREEN_WIDTH - self.image.get_width())
             # 从屏幕下方开始
             self.y = SCREEN_HEIGHT + random.randint(0, 200)
             # 上升速度（随机）
-            self.speed = random.uniform(1, 3)
+            self.speed = random.uniform(3, 6)
             # 左右摆动
             self.swing_offset = random.uniform(-1, 1)
             self.swing_speed = random.uniform(0.02, 0.05)
@@ -500,10 +537,16 @@ def main():
     
     # 创建庆祝气球列表（初始为空，胜利时才创建）
     celebration_balloons = []
+    
+    # 云朵动画相关变量
+    cloud_float_offset = 0  # 云朵上下浮动偏移量
+    cloud_float_speed = 0.05  # 云朵浮动速度
+    cloud_float_angle = 0  # 云朵浮动角度
 
     # 用于跟踪是否已经播放庆祝音效
     celebration_played = False
     applause_played = False
+    celebration_started = False  # 用于锁定庆祝状态，确保庆祝画面持续显示
     
     # 尝试加载庆祝音效（支持 WAV 或 MP3 格式）
     try:
@@ -598,6 +641,9 @@ def main():
                 cabbages.remove(cabbage)
                 # 增加分数
                 score += 1
+                # 触发分数动画
+                score_animating = True
+                score_animation_frame = 0
                 # 播放吃白菜音效
                 if cabbage_sound_loaded:
                     cabbage_sound.play()
@@ -611,6 +657,9 @@ def main():
                 apples.remove(apple)
                 # 增加分数
                 score += 1
+                # 触发分数动画
+                score_animating = True
+                score_animation_frame = 0
                 # 播放吃苹果音效
                 if apple_sound_loaded:
                     apple_sound.play()
@@ -624,13 +673,21 @@ def main():
                 bananas.remove(banana)
                 # 增加分数
                 score += 1
+                # 触发分数动画
+                score_animating = True
+                score_animation_frame = 0
                 # 播放吃香蕉音效（使用相同音效）
                 if apple_sound_loaded:
                     apple_sound.play()
                 print(f"蜗牛吃掉了香蕉！位置: ({banana_x}, {banana_y})，当前分数: {score}")
 
+        # 检查是否到达房子（庆祝画面）
+        # 房子的位置偏移（在这里定义，无论是否庆祝都可用）
+        house_offset_x, house_offset_y = -CELL_SIZE // 2, -CELL_SIZE + CELL_SIZE // 4
+        
+        # 无论是否庆祝，都绘制迷宫和游戏元素
         draw_maze(maze, start, background_image)
-
+        
         # 绘制所有白菜
         if CABBAGE_IMAGE is not None:
             for cabbage_x, cabbage_y in cabbages:
@@ -654,12 +711,15 @@ def main():
         snail_offset_y = (CELL_SIZE * 3 - CELL_SIZE) // 2
         screen.blit(PLAYER_IMAGE, (player_x * CELL_SIZE - snail_offset_x, player_y * CELL_SIZE - snail_offset_y))
 
-        # 调整房子的位置稍微向下
-        house_offset_x, house_offset_y = -CELL_SIZE // 2, -CELL_SIZE + CELL_SIZE // 4
+        # 绘制房子
         screen.blit(HOUSE_IMAGE, ((end_x * CELL_SIZE) + house_offset_x, (end_y * CELL_SIZE) + house_offset_y))
-
-        # 检查蜗牛是否到达房子
-        if player_x == end_x and player_y == end_y:
+        
+        # 检查是否到达房子，启动庆祝
+        if player_x == end_x and player_y == end_y and not celebration_started:
+            celebration_started = True  # 锁定庆祝状态
+        
+        # 如果庆祝已经开始，持续显示庆祝画面
+        if celebration_started:
             # 播放庆祝音效（只播放一次）
             if not celebration_played:
                 # 停止背景音乐
@@ -686,45 +746,191 @@ def main():
                 balloon.update()
                 balloon.draw(screen)
             
-            # 绘制云朵图片（PNG格式，已有透明背景）
+            # 更新云朵浮动动画
+            cloud_float_angle += cloud_float_speed
+            cloud_float_offset = math.sin(cloud_float_angle) * 15  # 上下浮动15像素
+            
+            # 绘制云朵图片（像素风格，基于云.png形状）
             try:
                 cloud_img = pygame.image.load("F:/code/little_game/云.png").convert_alpha()
                 
-                # 调整云朵大小（增大宽度以包裹文字）
+                # 设置云朵大小以包裹文字
                 # "Congratulations!!" 文字大约500-550像素宽，云朵设置为800像素确保完全包裹
                 cloud_width = 800
                 cloud_height = int(cloud_img.get_height() * (cloud_width / cloud_img.get_width()))
-                cloud_img_scaled = pygame.transform.scale(cloud_img, (cloud_width, cloud_height))
                 
-                # 将云朵居中绘制在文字后面
+                # 先缩小到1/8大小，再放大回目标尺寸，创建明显的像素风格效果
+                small_width = cloud_width // 8
+                small_height = cloud_height // 8
+                if small_width > 0 and small_height > 0:
+                    cloud_img_small = pygame.transform.scale(cloud_img, (small_width, small_height))
+                    cloud_img_scaled = pygame.transform.scale(cloud_img_small, (cloud_width, cloud_height))
+                else:
+                    cloud_img_scaled = pygame.transform.scale(cloud_img, (cloud_width, cloud_height))
+                
+                # 将云朵居中绘制在文字后面，添加上下浮动效果
                 cloud_x = SCREEN_WIDTH // 2 - cloud_width // 2
-                cloud_y = SCREEN_HEIGHT // 2 - cloud_height // 2
+                cloud_y = SCREEN_HEIGHT // 2 - cloud_height // 2 - 50 + cloud_float_offset  # 向上移动50像素 + 浮动偏移
                 screen.blit(cloud_img_scaled, (cloud_x, cloud_y))
             except Exception as e:
                 print(f"云朵图片加载失败: {e}")
             
-            # 使用可爱的字体显示祝贺信息
-            # 尝试使用系统中可爱的字体，如果没有则使用Comic Sans MS
-            cute_fonts = ["Comic Sans MS", "Arial Rounded MT Bold", "Chalkboard", "Bradley Hand", "Marker Felt"]
+            # 使用可爱的字体显示祝贺信息（像素风格）
+            # 使用方方正正的等宽字体
+            square_fonts = ["Courier New", "Consolas", "Monaco", "Lucida Console", "DejaVu Sans Mono"]
             congrats_font = None
-            for font_name in cute_fonts:
+            for font_name in square_fonts:
                 try:
                     congrats_font = pygame.font.SysFont(font_name, 74, bold=True)
                     break
                 except:
                     continue
             
-            # 如果找不到可爱字体，使用默认字体
+            # 如果找不到方正字体，使用默认字体
             if congrats_font is None:
                 congrats_font = pygame.font.Font(None, 74)
             
-            text = congrats_font.render("Congratulations!!", True, (255, 100, 150))  # 粉红色更可爱
-            text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
-            screen.blit(text, text_rect)
+            # 先渲染小尺寸文字，再放大创建像素风格（更小的字体，更大的像素块）
+            small_font = pygame.font.SysFont(square_fonts[0] if congrats_font else None, 16, bold=True)
+            small_text = small_font.render("Congratulations!!", True, (255, 100, 150))  # 粉红色更可爱
+            
+            # 获取小文字的尺寸
+            small_width = small_text.get_width()
+            small_height = small_text.get_height()
+            
+            # 放大4.5倍创建更大的像素效果
+            pixel_text = pygame.transform.scale(small_text, (int(small_width * 4.5), int(small_height * 4.5)))
+            
+            # 居中绘制，并添加云朵浮动效果（跟随云朵一起移动）
+            text_rect = pixel_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + cloud_float_offset))
+            screen.blit(pixel_text, text_rect)
+            
+            # 如果达到5分，显示皇冠（像素风格）
+            if score >= 5:
+                # 绘制像素风格的皇冠
+                crown_size = 60  # 皇冠大小
+                crown_x = SCREEN_WIDTH // 2 - crown_size // 2
+                crown_y = SCREEN_HEIGHT // 2 - 120 + cloud_float_offset  # 在文字上方更高位置，跟随云朵浮动
+                
+                # 绘制光束（从皇冠四周散发）
+                beam_color = (255, 255, 150, 180)  # 淡黄色，半透明
+                beam_length = 30
+                beam_width = 4
+                
+                # 创建光束表面
+                beam_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+                
+                # 8个方向的光束（上、下、左、右、四个对角）
+                beam_angles = [0, 45, 90, 135, 180, 225, 270, 315]
+                crown_center_x = crown_x + crown_size // 2
+                crown_center_y = crown_y + crown_size // 2
+                
+                for angle in beam_angles:
+                    # 计算光束终点
+                    rad = math.radians(angle)
+                    end_x = crown_center_x + math.cos(rad) * beam_length
+                    end_y = crown_center_y + math.sin(rad) * beam_length
+                    
+                    # 绘制光束（从皇冠中心向外）
+                    pygame.draw.line(beam_surface, beam_color, 
+                                   (crown_center_x, crown_center_y), 
+                                   (end_x, end_y), beam_width)
+                    
+                    # 在光束末端绘制像素风格的闪光点
+                    spark_size = 6
+                    pygame.draw.rect(beam_surface, (255, 255, 200, 200),
+                                   (end_x - spark_size // 2, end_y - spark_size // 2, 
+                                    spark_size, spark_size))
+                
+                # 绘制光束到屏幕
+                screen.blit(beam_surface, (0, 0))
+                
+                # 创建皇冠表面
+                crown_surface = pygame.Surface((crown_size, crown_size), pygame.SRCALPHA)
+                
+                # 皇冠颜色（金黄色）
+                gold = (255, 215, 0)
+                dark_gold = (218, 165, 32)
+                
+                pixel_size = crown_size // 12  # 像素块大小
+                
+                # 绘制皇冠的像素图案（12x12像素网格）
+                crown_pattern = [
+                    "            ",
+                    "  XX    XX  ",
+                    "  XX    XX  ",
+                    " XXXX  XXXX ",
+                    " XXXX  XXXX ",
+                    "XXXXXXXXXXXX",
+                    "XXXXXXXXXXXX",
+                    "XXXXXXXXXXXX",
+                    " XXXXXXXXXX ",
+                    " XXXXXXXXXX ",
+                    "  XXXXXXXX  ",
+                    "            "
+                ]
+                
+                # 绘制皇冠图案
+                for row in range(12):
+                    for col in range(12):
+                        if crown_pattern[row][col] == 'X':
+                            # 添加一些渐变效果
+                            if col < 6:
+                                color = gold
+                            else:
+                                color = dark_gold
+                            pygame.draw.rect(crown_surface, color, 
+                                           (col * pixel_size, row * pixel_size, pixel_size, pixel_size))
+                
+                # 添加宝石装饰（红色像素点）
+                gem_positions = [(2, 6), (5, 6), (9, 6)]  # 三颗宝石位置
+                gem_color = (255, 0, 0)
+                for gem_col, gem_row in gem_positions:
+                    pygame.draw.rect(crown_surface, gem_color,
+                                   (gem_col * pixel_size, gem_row * pixel_size, pixel_size * 2, pixel_size * 2))
+                
+                # 绘制皇冠到屏幕
+                screen.blit(crown_surface, (crown_x, crown_y))
 
-        # 在右下角显示分数文字
+        # 更新分数动画
+        if score_animating:
+            score_animation_frame += 1
+            # 动画持续12帧（约0.4秒），更快速
+            if score_animation_frame <= 6:
+                # 前6帧：放大到1.5倍
+                score_scale = 1.0 + (score_animation_frame / 6) * 0.5
+            elif score_animation_frame <= 12:
+                # 后6帧：缩小回1.0倍
+                score_scale = 1.5 - ((score_animation_frame - 6) / 6) * 0.5
+            else:
+                # 动画结束
+                score_scale = 1.0
+                score_animating = False
+                score_animation_frame = 0
+        
+        # 如果达到5分，持续循环闪烁动画
+        if score >= 5:
+            score_animation_frame += 1
+            # 循环动画：每12帧一个周期
+            cycle_frame = score_animation_frame % 12
+            if cycle_frame <= 6:
+                # 前6帧：放大到1.3倍
+                score_scale = 1.0 + (cycle_frame / 6) * 0.3
+            else:
+                # 后6帧：缩小回1.0倍
+                score_scale = 1.3 - ((cycle_frame - 6) / 6) * 0.3
+
+        # 在右下角显示分数文字（带缩放动画和颜色变化）
         score_font = pygame.font.Font(None, 36)
-        score_text = score_font.render(f"Score: {score}", True, (255, 255, 255))
+        score_color = get_score_color(score)  # 根据分数获取颜色
+        score_text = score_font.render(f"Score: {score}", True, score_color)
+        
+        # 如果有缩放动画，缩放文字
+        if score_scale != 1.0:
+            scaled_width = int(score_text.get_width() * score_scale)
+            scaled_height = int(score_text.get_height() * score_scale)
+            score_text = pygame.transform.scale(score_text, (scaled_width, scaled_height))
+        
         score_rect = score_text.get_rect(bottomright=(SCREEN_WIDTH - 10, SCREEN_HEIGHT - 10))
         screen.blit(score_text, score_rect)
 
