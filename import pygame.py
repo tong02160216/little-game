@@ -542,6 +542,10 @@ def main():
     cloud_float_offset = 0  # 云朵上下浮动偏移量
     cloud_float_speed = 0.05  # 云朵浮动速度
     cloud_float_angle = 0  # 云朵浮动角度
+    
+    # 光束动画相关变量
+    beam_animation_frame = 0  # 光束动画帧数
+    beam_animation_speed = 0.1  # 光束动画速度
 
     # 用于跟踪是否已经播放庆祝音效
     celebration_played = False
@@ -597,6 +601,83 @@ def main():
         print("成功加载并播放背景音乐")
     except:
         print("背景音乐文件未找到，游戏将正常运行但没有背景音乐")
+
+    # 开始界面循环
+    game_started = False
+    start_screen_running = True
+    
+    # 创建Start按钮
+    button_width = 200
+    button_height = 80
+    button_x = (SCREEN_WIDTH - button_width) // 2
+    button_y = (SCREEN_HEIGHT - button_height) // 2
+    button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
+    
+    while start_screen_running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # 左键点击
+                    mouse_pos = pygame.mouse.get_pos()
+                    if button_rect.collidepoint(mouse_pos):
+                        game_started = True
+                        start_screen_running = False
+        
+        # 绘制开始界面
+        screen.fill((135, 206, 235))  # 天蓝色背景
+        
+        # 绘制标题（像素风格）
+        square_fonts = ["Courier New", "Consolas", "Monaco", "Lucida Console", "DejaVu Sans Mono"]
+        small_title_font = pygame.font.SysFont(square_fonts[0], 16, bold=True)
+        small_title_text = small_title_font.render("Little Snail Goes Home", True, (50, 50, 50))
+        # 放大3倍创建像素效果
+        pixel_title = pygame.transform.scale(small_title_text, 
+                                            (small_title_text.get_width() * 3, 
+                                             small_title_text.get_height() * 3))
+        title_rect = pixel_title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 3))
+        screen.blit(pixel_title, title_rect)
+        
+        # 检查鼠标是否悬停在按钮上
+        mouse_pos = pygame.mouse.get_pos()
+        is_hover = button_rect.collidepoint(mouse_pos)
+        
+        # 绘制像素风格按钮（方形，无圆角）
+        button_color = (100, 200, 100) if is_hover else (150, 230, 150)
+        
+        # 主按钮填充
+        pygame.draw.rect(screen, button_color, button_rect)
+        
+        # 绘制像素风格的边框（多层方块边框）
+        border_color = (50, 150, 50)
+        pixel_border_size = 4
+        
+        # 外边框（像素块）
+        for i in range(pixel_border_size):
+            # 上边框
+            pygame.draw.rect(screen, border_color, 
+                           (button_rect.x + i * 8, button_rect.y, 8, 8))
+            # 下边框
+            pygame.draw.rect(screen, border_color, 
+                           (button_rect.x + i * 8, button_rect.bottom - 8, 8, 8))
+        
+        # 左右边框
+        pygame.draw.rect(screen, border_color, (button_rect.x, button_rect.y, 8, button_rect.height))
+        pygame.draw.rect(screen, border_color, (button_rect.right - 8, button_rect.y, 8, button_rect.height))
+        
+        # 绘制按钮文字（像素风格）
+        small_button_font = pygame.font.SysFont(square_fonts[0], 14, bold=True)
+        small_button_text = small_button_font.render("START", True, (255, 255, 255))
+        # 放大3倍创建像素效果
+        pixel_button_text = pygame.transform.scale(small_button_text,
+                                                   (small_button_text.get_width() * 3,
+                                                    small_button_text.get_height() * 3))
+        button_text_rect = pixel_button_text.get_rect(center=button_rect.center)
+        screen.blit(pixel_button_text, button_text_rect)
+        
+        pygame.display.flip()
+        clock.tick(30)
 
     # 主循环
     running = True
@@ -694,6 +775,30 @@ def main():
         
         # 无论是否庆祝，都绘制迷宫和游戏元素
         draw_maze(maze, start, background_image)
+        
+        # 绘制玩法说明（像素风格，顶部居中，带白色背景）
+        square_fonts = ["Courier New", "Consolas", "Monaco", "Lucida Console", "DejaVu Sans Mono"]
+        small_instruction_font = pygame.font.SysFont(square_fonts[0], 10, bold=True)
+        instruction_text = "Use A W S D on keyboard to control the snail finding way home."
+        small_instruction = small_instruction_font.render(instruction_text, True, (0, 0, 0))
+        
+        # 放大2倍创建像素效果
+        pixel_instruction = pygame.transform.scale(small_instruction,
+                                                   (small_instruction.get_width() * 2,
+                                                    small_instruction.get_height() * 2))
+        instruction_rect = pixel_instruction.get_rect(center=(SCREEN_WIDTH // 2, 15))
+        
+        # 绘制白色背景（稍微大一些，增加内边距）
+        padding = 8
+        bg_rect = pygame.Rect(instruction_rect.x - padding, 
+                             instruction_rect.y - padding,
+                             instruction_rect.width + padding * 2,
+                             instruction_rect.height + padding * 2)
+        pygame.draw.rect(screen, (255, 255, 255), bg_rect)  # 白色背景
+        pygame.draw.rect(screen, (200, 200, 200), bg_rect, 2)  # 浅灰色边框
+        
+        # 绘制文字
+        screen.blit(pixel_instruction, instruction_rect)
         
         # 绘制所有白菜
         if CABBAGE_IMAGE is not None:
@@ -836,35 +941,68 @@ def main():
                 crown_x = SCREEN_WIDTH // 2 - crown_size // 2
                 crown_y = SCREEN_HEIGHT // 2 - 120 + cloud_float_offset  # 在文字上方更高位置，跟随云朵浮动
                 
-                # 绘制光束（从皇冠四周散发）
-                beam_color = (255, 255, 150, 180)  # 淡黄色，半透明
-                beam_length = 30
-                beam_width = 4
+                # 绘制光束（从皇冠四周散发，动态向外扩散效果）
+                # 更新光束动画
+                beam_animation_frame += beam_animation_speed
                 
                 # 创建光束表面
                 beam_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
                 
-                # 8个方向的光束（上、下、左、右、四个对角）
-                beam_angles = [0, 45, 90, 135, 180, 225, 270, 315]
+                # 增加更多方向的光束（16个方向，更密集）
+                beam_angles = [i * 22.5 for i in range(16)]  # 每22.5度一条光束
                 crown_center_x = crown_x + crown_size // 2
                 crown_center_y = crown_y + crown_size // 2
                 
-                for angle in beam_angles:
-                    # 计算光束终点
+                for i, angle in enumerate(beam_angles):
                     rad = math.radians(angle)
+                    
+                    # 主方向的光束更长更亮
+                    if i % 2 == 0:  # 主方向（0°, 45°, 90°等）
+                        base_length = 50  # 基础长度
+                        beam_color = (255, 255, 100, 220)  # 更亮的黄色
+                        beam_width = 6
+                    else:  # 次要方向
+                        base_length = 35
+                        beam_color = (255, 255, 150, 150)  # 稍淡
+                        beam_width = 4
+                    
+                    # 计算动态扩散效果（使用sin函数创建脉冲效果）
+                    pulse = math.sin(beam_animation_frame + i * 0.2) * 0.3 + 1.0  # 0.7-1.3倍波动
+                    beam_length = base_length * pulse
+                    
+                    # 计算光束终点
                     end_x = crown_center_x + math.cos(rad) * beam_length
                     end_y = crown_center_y + math.sin(rad) * beam_length
                     
-                    # 绘制光束（从皇冠中心向外）
-                    pygame.draw.line(beam_surface, beam_color, 
-                                   (crown_center_x, crown_center_y), 
-                                   (end_x, end_y), beam_width)
+                    # 绘制多段光束创造向外发射效果
+                    segments = 5  # 光束段数
+                    for seg in range(segments):
+                        # 每段的起点和终点（从中心向外）
+                        seg_progress = seg / segments
+                        next_progress = (seg + 1) / segments
+                        
+                        seg_start_x = crown_center_x + math.cos(rad) * beam_length * seg_progress
+                        seg_start_y = crown_center_y + math.sin(rad) * beam_length * seg_progress
+                        seg_end_x = crown_center_x + math.cos(rad) * beam_length * next_progress
+                        seg_end_y = crown_center_y + math.sin(rad) * beam_length * next_progress
+                        
+                        # 透明度从中心向外递减
+                        alpha = int(beam_color[3] * (1 - seg_progress * 0.7))
+                        seg_width = max(1, int(beam_width * (1 - seg_progress * 0.5)))
+                        seg_color = (beam_color[0], beam_color[1], beam_color[2], alpha)
+                        
+                        pygame.draw.line(beam_surface, seg_color,
+                                       (seg_start_x, seg_start_y),
+                                       (seg_end_x, seg_end_y), seg_width)
                     
-                    # 在光束末端绘制像素风格的闪光点
-                    spark_size = 6
-                    pygame.draw.rect(beam_surface, (255, 255, 200, 200),
-                                   (end_x - spark_size // 2, end_y - spark_size // 2, 
-                                    spark_size, spark_size))
+                    # 在主方向光束末端绘制闪烁的闪光点
+                    if i % 2 == 0:
+                        spark_pulse = abs(math.sin(beam_animation_frame * 2 + i))  # 快速闪烁
+                        spark_size = int(8 * (0.7 + spark_pulse * 0.3))  # 5-8像素
+                        spark_alpha = int(200 + spark_pulse * 55)  # 200-255
+                        pygame.draw.rect(beam_surface, (255, 255, 200, spark_alpha),
+                                       (end_x - spark_size // 2, end_y - spark_size // 2,
+                                        spark_size, spark_size))
                 
                 # 绘制光束到屏幕
                 screen.blit(beam_surface, (0, 0))
@@ -921,11 +1059,11 @@ def main():
             score_animation_frame += 1
             # 动画持续12帧（约0.4秒），更快速
             if score_animation_frame <= 6:
-                # 前6帧：放大到1.5倍
-                score_scale = 1.0 + (score_animation_frame / 6) * 0.5
+                # 前6帧：放大到1.2倍（减小幅度）
+                score_scale = 1.0 + (score_animation_frame / 6) * 0.2
             elif score_animation_frame <= 12:
                 # 后6帧：缩小回1.0倍
-                score_scale = 1.5 - ((score_animation_frame - 6) / 6) * 0.5
+                score_scale = 1.2 - ((score_animation_frame - 6) / 6) * 0.2
             else:
                 # 动画结束
                 score_scale = 1.0
@@ -938,24 +1076,40 @@ def main():
             # 循环动画：每12帧一个周期
             cycle_frame = score_animation_frame % 12
             if cycle_frame <= 6:
-                # 前6帧：放大到1.3倍
-                score_scale = 1.0 + (cycle_frame / 6) * 0.3
+                # 前6帧：放大到1.15倍（减小幅度）
+                score_scale = 1.0 + (cycle_frame / 6) * 0.15
             else:
                 # 后6帧：缩小回1.0倍
-                score_scale = 1.3 - ((cycle_frame - 6) / 6) * 0.3
+                score_scale = 1.15 - ((cycle_frame - 6) / 6) * 0.15
 
-        # 在右上角显示分数文字（像素风格，带缩放动画和颜色变化）
+        # 在正下方显示分数文字（像素风格，带缩放动画和颜色变化，加粗描边）
         square_fonts = ["Courier New", "Consolas", "Monaco", "Lucida Console", "DejaVu Sans Mono"]
         small_score_font = pygame.font.SysFont(square_fonts[0], 12, bold=True)  # 小字体
         score_color = get_score_color(score)  # 根据分数获取颜色
         
-        # 渲染小尺寸文字
-        small_score_text = small_score_font.render(f"Score: {score}", True, score_color)
+        # 创建描边效果让文字更粗
+        score_text_str = f"Score: {score}"
+        # 计算描边颜色（比主色稍深）
+        outline_color = tuple(max(0, c - 50) for c in score_color)
+        
+        # 创建描边文字
+        outline_offsets = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+        score_outline_surface = pygame.Surface((small_score_font.size(score_text_str)[0] + 4,
+                                               small_score_font.size(score_text_str)[1] + 4),
+                                               pygame.SRCALPHA)
+        
+        for offset_x, offset_y in outline_offsets:
+            outline_text = small_score_font.render(score_text_str, True, outline_color)
+            score_outline_surface.blit(outline_text, (2 + offset_x, 2 + offset_y))
+        
+        # 渲染主文字
+        main_score_text = small_score_font.render(score_text_str, True, score_color)
+        score_outline_surface.blit(main_score_text, (2, 2))
         
         # 放大2.5倍创建像素风格效果
-        score_text = pygame.transform.scale(small_score_text, 
-                                           (int(small_score_text.get_width() * 2.5), 
-                                            int(small_score_text.get_height() * 2.5)))
+        score_text = pygame.transform.scale(score_outline_surface, 
+                                           (int(score_outline_surface.get_width() * 2.5), 
+                                            int(score_outline_surface.get_height() * 2.5)))
         
         # 先获取原始大小
         original_width = score_text.get_width()
@@ -967,15 +1121,14 @@ def main():
             scaled_height = int(original_height * score_scale)
             score_text = pygame.transform.scale(score_text, (scaled_width, scaled_height))
             
-            # 右边固定在原位置，垂直方向从中心缩放
-            vertical_offset = (scaled_height - original_height) / 2
+            # 从中心缩放
             score_rect = score_text.get_rect()
-            score_rect.topright = (SCREEN_WIDTH - 10, 10 - vertical_offset)
+            score_rect.midbottom = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 2)
             screen.blit(score_text, score_rect)
         else:
-            # 没有缩放时，正常显示在右上角
+            # 没有缩放时，正常显示在正下方居中
             score_rect = score_text.get_rect()
-            score_rect.topright = (SCREEN_WIDTH - 10, 10)
+            score_rect.midbottom = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 2)
             screen.blit(score_text, score_rect)
 
         pygame.display.flip()
