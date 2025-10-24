@@ -611,6 +611,13 @@ def main():
                     end_x, end_y = end
                     celebration_played = False  # 重置音效标志
                     applause_played = False  # 重置欢呼声标志
+                    celebration_started = False  # 重置庆祝状态，清除庆祝画面
+                    celebration_balloons = []  # 清空庆祝气球列表
+                    # 停止所有庆祝音效
+                    if sound_loaded:
+                        celebration_sound.stop()
+                    if applause_loaded:
+                        applause_sound.stop()
                     # 重新生成食物
                     cabbages, apples, bananas = generate_food_items()
                     # 重置分数
@@ -714,8 +721,8 @@ def main():
         # 绘制房子
         screen.blit(HOUSE_IMAGE, ((end_x * CELL_SIZE) + house_offset_x, (end_y * CELL_SIZE) + house_offset_y))
         
-        # 检查是否到达房子，启动庆祝
-        if player_x == end_x and player_y == end_y and not celebration_started:
+        # 检查是否到达房子，启动庆祝（必须至少得1分才能触发）
+        if player_x == end_x and player_y == end_y and not celebration_started and score > 0:
             celebration_started = True  # 锁定庆祝状态
         
         # 如果庆祝已经开始，持续显示庆祝画面
@@ -792,14 +799,31 @@ def main():
             
             # 先渲染小尺寸文字，再放大创建像素风格（更小的字体，更大的像素块）
             small_font = pygame.font.SysFont(square_fonts[0] if congrats_font else None, 16, bold=True)
-            small_text = small_font.render("Congratulations!!", True, (255, 100, 150))  # 粉红色更可爱
             
-            # 获取小文字的尺寸
-            small_width = small_text.get_width()
-            small_height = small_text.get_height()
+            # 创建描边效果让文字更粗
+            outline_color = (200, 50, 100)  # 深粉色描边
+            text_color = (255, 100, 150)  # 粉红色主体
             
-            # 放大4.5倍创建更大的像素效果
-            pixel_text = pygame.transform.scale(small_text, (int(small_width * 4.5), int(small_height * 4.5)))
+            # 渲染描边（在主文字周围绘制多层）
+            outline_offsets = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+            outline_surface = pygame.Surface((small_font.size("Congratulations!!")[0] + 4, 
+                                            small_font.size("Congratulations!!")[1] + 4), 
+                                            pygame.SRCALPHA)
+            
+            for offset_x, offset_y in outline_offsets:
+                outline_text = small_font.render("Congratulations!!", True, outline_color)
+                outline_surface.blit(outline_text, (2 + offset_x, 2 + offset_y))
+            
+            # 渲染主文字
+            main_text = small_font.render("Congratulations!!", True, text_color)
+            outline_surface.blit(main_text, (2, 2))
+            
+            # 获取文字尺寸
+            small_width = outline_surface.get_width()
+            small_height = outline_surface.get_height()
+            
+            # 放大3.5倍创建像素效果（从4.5减小到3.5）
+            pixel_text = pygame.transform.scale(outline_surface, (int(small_width * 3.5), int(small_height * 3.5)))
             
             # 居中绘制，并添加云朵浮动效果（跟随云朵一起移动）
             text_rect = pixel_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + cloud_float_offset))
@@ -920,19 +944,39 @@ def main():
                 # 后6帧：缩小回1.0倍
                 score_scale = 1.3 - ((cycle_frame - 6) / 6) * 0.3
 
-        # 在右下角显示分数文字（带缩放动画和颜色变化）
-        score_font = pygame.font.Font(None, 36)
+        # 在右上角显示分数文字（像素风格，带缩放动画和颜色变化）
+        square_fonts = ["Courier New", "Consolas", "Monaco", "Lucida Console", "DejaVu Sans Mono"]
+        small_score_font = pygame.font.SysFont(square_fonts[0], 12, bold=True)  # 小字体
         score_color = get_score_color(score)  # 根据分数获取颜色
-        score_text = score_font.render(f"Score: {score}", True, score_color)
         
-        # 如果有缩放动画，缩放文字
+        # 渲染小尺寸文字
+        small_score_text = small_score_font.render(f"Score: {score}", True, score_color)
+        
+        # 放大2.5倍创建像素风格效果
+        score_text = pygame.transform.scale(small_score_text, 
+                                           (int(small_score_text.get_width() * 2.5), 
+                                            int(small_score_text.get_height() * 2.5)))
+        
+        # 先获取原始大小
+        original_width = score_text.get_width()
+        original_height = score_text.get_height()
+        
+        # 如果有缩放动画，从右边向左放大（右边固定）
         if score_scale != 1.0:
-            scaled_width = int(score_text.get_width() * score_scale)
-            scaled_height = int(score_text.get_height() * score_scale)
+            scaled_width = int(original_width * score_scale)
+            scaled_height = int(original_height * score_scale)
             score_text = pygame.transform.scale(score_text, (scaled_width, scaled_height))
-        
-        score_rect = score_text.get_rect(bottomright=(SCREEN_WIDTH - 10, SCREEN_HEIGHT - 10))
-        screen.blit(score_text, score_rect)
+            
+            # 右边固定在原位置，垂直方向从中心缩放
+            vertical_offset = (scaled_height - original_height) / 2
+            score_rect = score_text.get_rect()
+            score_rect.topright = (SCREEN_WIDTH - 10, 10 - vertical_offset)
+            screen.blit(score_text, score_rect)
+        else:
+            # 没有缩放时，正常显示在右上角
+            score_rect = score_text.get_rect()
+            score_rect.topright = (SCREEN_WIDTH - 10, 10)
+            screen.blit(score_text, score_rect)
 
         pygame.display.flip()
         clock.tick(30)
