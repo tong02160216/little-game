@@ -552,6 +552,14 @@ def main():
     applause_played = False
     celebration_started = False  # 用于锁定庆祝状态，确保庆祝画面持续显示
     
+    # 玩法说明显示时间控制
+    instruction_display_time = 5.0  # 显示5秒
+    instruction_start_time = pygame.time.get_ticks() / 1000.0  # 记录游戏开始时间（秒）
+    
+    # 挑战文字显示时间控制
+    challenge_text_delay = 6.0  # 在指令消失后1秒显示（5秒指令 + 1秒延迟）
+    challenge_display_time = 5.0  # 挑战文字显示5秒
+    
     # 尝试加载庆祝音效（支持 WAV 或 MP3 格式）
     try:
         celebration_sound = pygame.mixer.Sound("F:/code/little_game/celebration.mp3")
@@ -649,6 +657,10 @@ def main():
         # 主按钮填充
         pygame.draw.rect(screen, button_color, button_rect)
         
+        # 绘制深绿色边缘线（在像素边框之前，作为外轮廓）
+        dark_green = (0, 100, 0)  # 深绿色
+        pygame.draw.rect(screen, dark_green, button_rect, 3)  # 3像素宽的边缘线
+        
         # 绘制像素风格的边框（多层方块边框）
         border_color = (50, 150, 50)
         pixel_border_size = 4
@@ -676,6 +688,16 @@ def main():
         button_text_rect = pixel_button_text.get_rect(center=button_rect.center)
         screen.blit(pixel_button_text, button_text_rect)
         
+        # 绘制提示文字（像素风格，在按钮下方）
+        small_tip_font = pygame.font.SysFont(square_fonts[0], 10, bold=True)
+        small_tip_text = small_tip_font.render("Please use English input method.", True, (100, 100, 100))
+        # 放大2倍创建像素效果
+        pixel_tip = pygame.transform.scale(small_tip_text,
+                                           (small_tip_text.get_width() * 2,
+                                            small_tip_text.get_height() * 2))
+        tip_rect = pixel_tip.get_rect(center=(SCREEN_WIDTH // 2, button_rect.bottom + 40))
+        screen.blit(pixel_tip, tip_rect)
+        
         pygame.display.flip()
         clock.tick(30)
 
@@ -694,6 +716,8 @@ def main():
                     applause_played = False  # 重置欢呼声标志
                     celebration_started = False  # 重置庆祝状态，清除庆祝画面
                     celebration_balloons = []  # 清空庆祝气球列表
+                    # 重置玩法说明显示时间
+                    instruction_start_time = pygame.time.get_ticks() / 1000.0
                     # 停止所有庆祝音效
                     if sound_loaded:
                         celebration_sound.stop()
@@ -776,29 +800,56 @@ def main():
         # 无论是否庆祝，都绘制迷宫和游戏元素
         draw_maze(maze, start, background_image)
         
-        # 绘制玩法说明（像素风格，顶部居中，带白色背景）
-        square_fonts = ["Courier New", "Consolas", "Monaco", "Lucida Console", "DejaVu Sans Mono"]
-        small_instruction_font = pygame.font.SysFont(square_fonts[0], 10, bold=True)
-        instruction_text = "Use A W S D on keyboard to control the snail finding way home."
-        small_instruction = small_instruction_font.render(instruction_text, True, (0, 0, 0))
+        # 绘制玩法说明（像素风格，顶部居中，带白色背景，只显示5秒）
+        current_time = pygame.time.get_ticks() / 1000.0  # 当前时间（秒）
+        if current_time - instruction_start_time <= instruction_display_time:
+            square_fonts = ["Courier New", "Consolas", "Monaco", "Lucida Console", "DejaVu Sans Mono"]
+            small_instruction_font = pygame.font.SysFont(square_fonts[0], 10, bold=True)
+            instruction_text = "Use A W S D on keyboard to control the snail finding way home."
+            small_instruction = small_instruction_font.render(instruction_text, True, (0, 0, 0))
+            
+            # 放大2倍创建像素效果
+            pixel_instruction = pygame.transform.scale(small_instruction,
+                                                       (small_instruction.get_width() * 2,
+                                                        small_instruction.get_height() * 2))
+            instruction_rect = pixel_instruction.get_rect(center=(SCREEN_WIDTH // 2, 15))
+            
+            # 绘制白色背景（稍微大一些，增加内边距）
+            padding = 8
+            bg_rect = pygame.Rect(instruction_rect.x - padding, 
+                                 instruction_rect.y - padding,
+                                 instruction_rect.width + padding * 2,
+                                 instruction_rect.height + padding * 2)
+            pygame.draw.rect(screen, (255, 255, 255), bg_rect)  # 白色背景
+            pygame.draw.rect(screen, (200, 200, 200), bg_rect, 2)  # 浅灰色边框
+            
+            # 绘制文字
+            screen.blit(pixel_instruction, instruction_rect)
         
-        # 放大2倍创建像素效果
-        pixel_instruction = pygame.transform.scale(small_instruction,
-                                                   (small_instruction.get_width() * 2,
-                                                    small_instruction.get_height() * 2))
-        instruction_rect = pixel_instruction.get_rect(center=(SCREEN_WIDTH // 2, 15))
-        
-        # 绘制白色背景（稍微大一些，增加内边距）
-        padding = 8
-        bg_rect = pygame.Rect(instruction_rect.x - padding, 
-                             instruction_rect.y - padding,
-                             instruction_rect.width + padding * 2,
-                             instruction_rect.height + padding * 2)
-        pygame.draw.rect(screen, (255, 255, 255), bg_rect)  # 白色背景
-        pygame.draw.rect(screen, (200, 200, 200), bg_rect, 2)  # 浅灰色边框
-        
-        # 绘制文字
-        screen.blit(pixel_instruction, instruction_rect)
+        # 绘制挑战文字（在指令消失后1秒显示，一直持续到游戏结束）
+        elif current_time - instruction_start_time >= challenge_text_delay:
+            square_fonts = ["Courier New", "Consolas", "Monaco", "Lucida Console", "DejaVu Sans Mono"]
+            small_challenge_font = pygame.font.SysFont(square_fonts[0], 10, bold=True)
+            challenge_text = "Try if you can finish in 10s!"
+            small_challenge = small_challenge_font.render(challenge_text, True, (0, 0, 0))
+            
+            # 放大2倍创建像素效果
+            pixel_challenge = pygame.transform.scale(small_challenge,
+                                                     (small_challenge.get_width() * 2,
+                                                      small_challenge.get_height() * 2))
+            challenge_rect = pixel_challenge.get_rect(center=(SCREEN_WIDTH // 2, 15))
+            
+            # 绘制白色背景（稍微大一些，增加内边距）
+            padding = 8
+            bg_rect = pygame.Rect(challenge_rect.x - padding, 
+                                 challenge_rect.y - padding,
+                                 challenge_rect.width + padding * 2,
+                                 challenge_rect.height + padding * 2)
+            pygame.draw.rect(screen, (255, 255, 255), bg_rect)  # 白色背景
+            pygame.draw.rect(screen, (200, 200, 200), bg_rect, 2)  # 浅灰色边框
+            
+            # 绘制文字
+            screen.blit(pixel_challenge, challenge_rect)
         
         # 绘制所有白菜
         if CABBAGE_IMAGE is not None:
@@ -839,19 +890,20 @@ def main():
                 # 播放庆祝音效
                 if sound_loaded:
                     celebration_sound.play()
-                # 立即播放欢呼声
-                if applause_loaded:
+                # 立即播放欢呼声（只在得分大于1时播放）
+                if applause_loaded and score > 1:
                     applause_sound.play()
                 celebration_played = True
                 applause_played = True
-                # 创建庆祝气球（28个，每种气球7个，平均分配）
+                # 创建庆祝气球（只在得分大于1时创建）
                 celebration_balloons = []
-                balloons_per_type = 7  # 每种气球7个
-                for balloon_img in balloon_images:
-                    for _ in range(balloons_per_type):
-                        celebration_balloons.append(CelebrationBalloon(balloon_img))
-                # 打乱顺序让气球更随机
-                random.shuffle(celebration_balloons)
+                if score > 1:
+                    balloons_per_type = 7  # 每种气球7个
+                    for balloon_img in balloon_images:
+                        for _ in range(balloons_per_type):
+                            celebration_balloons.append(CelebrationBalloon(balloon_img))
+                    # 打乱顺序让气球更随机
+                    random.shuffle(celebration_balloons)
             
             # 更新并绘制庆祝气球
             for balloon in celebration_balloons:
@@ -877,7 +929,7 @@ def main():
                 if small_width > 0 and small_height > 0:
                     cloud_img_small = pygame.transform.scale(cloud_img, (small_width, small_height))
                     cloud_img_scaled = pygame.transform.scale(cloud_img_small, (cloud_width, cloud_height))
-                else:
+                else: 
                     cloud_img_scaled = pygame.transform.scale(cloud_img, (cloud_width, cloud_height))
                 
                 # 将云朵居中绘制在文字后面，添加上下浮动效果
