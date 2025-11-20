@@ -30,7 +30,7 @@ WALL = (255, 255, 255)        # 白色墙线
 ARROW = (0, 0, 0)             # 起点黑色箭头
 
 # 加载玩家图片
-PLAYER_IMAGE = pygame.image.load("F:/code/little_game/023-snails.png")
+PLAYER_IMAGE = pygame.image.load("F:/code/little_game/little-game/023-snails.png")
 PLAYER_IMAGE = pygame.transform.scale(PLAYER_IMAGE, (CELL_SIZE, CELL_SIZE))  # 调整玩家图片大小
 
 # 创建屏幕
@@ -227,7 +227,7 @@ def draw_static_pixel_background(surface, background):
 # 添加结算画面的函数，使用气球图像
 def show_congratulations_screen():
     # 加载背景图像作为气球背景
-    background_image = pygame.image.load("F:/code/little_game/生成气球图片.png")
+    background_image = pygame.image.load("F:/code/little_game/little-game/生成气球图片.png")
 
     # 在结算画面中绘制背景气球动画
     while True:  # 无限循环，保持画面
@@ -252,10 +252,10 @@ def show_congratulations_screen():
 # 加载多个气球背景图像（使用convert_alpha保留透明通道）
 balloon_images = []
 balloon_files = [
-    "F:/code/little_game/B1.png",
-    "F:/code/little_game/B2.png",
-    "F:/code/little_game/B4.png",
-    "F:/code/little_game/B6.png"
+    "F:/code/little_game/little-game/B1.png",
+    "F:/code/little_game/little-game/B2.png",
+    "F:/code/little_game/little-game/B4.png",
+    "F:/code/little_game/little-game/B6.png"
 ]
 
 # 加载所有气球图片（添加像素效果）
@@ -334,7 +334,7 @@ def main():
     CELL_SIZE = SCREEN_WIDTH // MAZE_WIDTH
 
     # 加载玩家图像
-    PLAYER_IMAGE = pygame.image.load("F:/code/little_game/023-snails.png")
+    PLAYER_IMAGE = pygame.image.load("F:/code/little_game/little-game/023-snails.png")
     PLAYER_IMAGE = pygame.transform.scale(PLAYER_IMAGE, (CELL_SIZE, CELL_SIZE))
 
     # 恢复蜗牛的大小
@@ -345,14 +345,14 @@ def main():
 
     # 确保房子图片为全局变量
     global HOUSE_IMAGE
-    HOUSE_IMAGE = pygame.image.load("F:/code/little_game/房子3.png")
+    HOUSE_IMAGE = pygame.image.load("F:/code/little_game/little-game/房子3.png")
     HOUSE_IMAGE = pygame.transform.scale(HOUSE_IMAGE, (CELL_SIZE * 2, CELL_SIZE * 2))  # 调整房子大小
     HOUSE_IMAGE = pygame.transform.scale(HOUSE_IMAGE, (CELL_SIZE // 2, CELL_SIZE // 2))  # 缩小
     HOUSE_IMAGE = pygame.transform.scale(HOUSE_IMAGE, (CELL_SIZE * 2, CELL_SIZE * 2))  # 放大回原尺寸
 
     # 加载背景图
     try:
-        background_image = pygame.image.load("F:/code/little_game/生成草地背景图.png")
+        background_image = pygame.image.load("F:/code/little_game/little-game/生成草地背景图.png")
         background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
         print("成功加载背景图")
     except:
@@ -362,7 +362,7 @@ def main():
     # 加载白菜图片
     try:
         global CABBAGE_IMAGE
-        CABBAGE_IMAGE = pygame.image.load("F:/code/little_game/新鲜果蔬_新鲜蔬菜包菜.png")
+        CABBAGE_IMAGE = pygame.image.load("F:/code/little_game/little-game/新鲜果蔬_新鲜蔬菜包菜.png")
         # 先缩小再放大，创建像素风格效果
         small_size = CELL_SIZE // 2
         CABBAGE_IMAGE = pygame.transform.scale(CABBAGE_IMAGE, (small_size, small_size))
@@ -375,7 +375,7 @@ def main():
     # 加载苹果图片
     try:
         global APPLE_IMAGE
-        APPLE_IMAGE = pygame.image.load("F:/code/little_game/苹果.png")
+        APPLE_IMAGE = pygame.image.load("F:/code/little_game/little-game/苹果.png")
         # 先缩小再放大，创建像素风格效果
         small_size = CELL_SIZE // 2
         APPLE_IMAGE = pygame.transform.scale(APPLE_IMAGE, (small_size, small_size))
@@ -388,7 +388,7 @@ def main():
     # 加载香蕉图片
     try:
         global BANANA_IMAGE
-        BANANA_IMAGE = pygame.image.load("F:/code/little_game/香蕉.png")
+        BANANA_IMAGE = pygame.image.load("F:/code/little_game/little-game/香蕉.png")
         # 先缩小再放大，创建像素风格效果
         small_size = CELL_SIZE // 2
         BANANA_IMAGE = pygame.transform.scale(BANANA_IMAGE, (small_size, small_size))
@@ -562,13 +562,13 @@ def main():
     
     # 尝试加载庆祝音效（支持 WAV 或 MP3 格式）
     try:
-        celebration_sound = pygame.mixer.Sound("F:/code/little_game/celebration.mp3")
+        celebration_sound = pygame.mixer.Sound("F:/code/little_game/little-game/celebration.mp3")
         celebration_sound.set_volume(1.0)  # 设置庆祝音效音量为100%（最大）
         sound_loaded = True
         print("成功加载庆祝音效（MP3格式）")
     except:
         try:
-            celebration_sound = pygame.mixer.Sound("F:/code/little_game/celebration.wav")
+            celebration_sound = pygame.mixer.Sound("F:/code/little_game/little-game/celebration.wav")
             celebration_sound.set_volume(1.0)
             sound_loaded = True
             print("成功加载庆祝音效（WAV格式）")
@@ -578,7 +578,7 @@ def main():
     
     # 尝试加载欢呼声音效
     try:
-        applause_sound = pygame.mixer.Sound("F:/code/little_game/applause-cheer-236786.mp3")
+        applause_sound = pygame.mixer.Sound("F:/code/little_game/little-game/applause-cheer-236786.mp3")
         applause_sound.set_volume(0.8)  # 设置欢呼声音量为80%
         applause_loaded = True
         print("成功加载欢呼声音效")
@@ -588,7 +588,7 @@ def main():
     
     # 尝试加载吃白菜音效
     try:
-        cabbage_sound = pygame.mixer.Sound("F:/code/little_game/shine-11-268907.mp3")
+        cabbage_sound = pygame.mixer.Sound("F:/code/little_game/little-game/shine-11-268907.mp3")
         cabbage_sound.set_volume(0.6)  # 设置吃白菜音效音量为60%
         cabbage_sound_loaded = True
         print("成功加载吃白菜音效")
@@ -603,7 +603,7 @@ def main():
     
     # 加载并播放背景音乐
     try:
-        pygame.mixer.music.load("F:/code/little_game/10月22日.WAV")
+        pygame.mixer.music.load("F:/code/little_game/little-game/10月22日.WAV")
         pygame.mixer.music.set_volume(0.3)  # 设置背景音乐音量为30%
         pygame.mixer.music.play(-1)  # -1 表示循环播放
         print("成功加载并播放背景音乐")
@@ -916,7 +916,7 @@ def main():
             
             # 绘制云朵图片（像素风格，基于云.png形状）
             try:
-                cloud_img = pygame.image.load("F:/code/little_game/云.png").convert_alpha()
+                cloud_img = pygame.image.load("F:/code/little_game/little-game/云.png").convert_alpha()
                 
                 # 设置云朵大小以包裹文字
                 # "Congratulations!!" 文字大约500-550像素宽，云朵设置为800像素确保完全包裹
